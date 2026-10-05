@@ -23,7 +23,7 @@ services:
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-prod-secret-key-change-in-production-2026}
       DEBUG: "False"
-      MONGO_URI: mongodb://mongodb:27017/learnova_db
+      MONGO_URI: "mongodb+srv://hariprasathnagarajan24_db_user:GWFbYog8F48DSRHi@cluster0.s1arftn.mongodb.net"
       MONGO_DB_NAME: learnova_db
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
       CORS_ALLOW_ALL_ORIGINS: "True"
