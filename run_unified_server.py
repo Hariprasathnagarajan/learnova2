@@ -25,11 +25,18 @@ def main():
         print("[OK] Web bundle verified in:", DIST_DIR)
 
     # 2. Set environment
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(BACKEND_DIR / '.env')
+    except ImportError:
+        pass
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'learnova_server.settings')
     
-    # 3. Apply migrations and seed
+    # 3. Apply migrations and sync MongoDB
     print("[*] Checking database migrations...")
     subprocess.run([sys.executable, "manage.py", "migrate"], cwd=str(BACKEND_DIR), check=True)
+    print("[*] Synchronizing data to MongoDB...")
+    subprocess.run([sys.executable, "manage.py", "sync_mongodb"], cwd=str(BACKEND_DIR))
 
     print("\n" + "=" * 60)
     print("  [WEB] Web Application:  http://localhost:8000/  (LAN: http://10.43.229.186:8000/)")

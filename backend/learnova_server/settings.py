@@ -70,12 +70,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'learnova_server.wsgi.application'
 
 # Database configuration: MongoDB, PostgreSQL, or SQLite
-if os.environ.get('USE_MONGO') == 'true' or os.environ.get('MONGO_URI'):
+# MongoDB service connector uses MONGO_URI via core.mongodb (pymongo)
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
+MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'learnova_db')
+
+if os.environ.get('USE_MONGO_ENGINE') == 'true':
     DATABASES = {
         'default': {
             'ENGINE': 'django_mongodb_backend',
-            'NAME': os.environ.get('MONGO_DB_NAME', 'learnova_db'),
-            'HOST': os.environ.get('MONGO_URI', 'mongodb://localhost:27017'),
+            'NAME': MONGO_DB_NAME,
+            'HOST': MONGO_URI,
             'USER': os.environ.get('MONGO_USER', ''),
             'PASSWORD': os.environ.get('MONGO_PASSWORD', ''),
         }
@@ -127,7 +131,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
-if os.environ.get('USE_MONGO') == 'true' or os.environ.get('MONGO_URI'):
+if os.environ.get('USE_MONGO_ENGINE') == 'true':
     DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
 else:
     DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -39,19 +39,25 @@ def get_mongo_client() -> MongoClient:
     global _mongo_client
     if _mongo_client is None:
         uri = get_mongo_uri()
+        client_kwargs = {
+            'serverSelectionTimeoutMS': 5000,
+            'connectTimeoutMS': 5000,
+            'socketTimeoutMS': 10000,
+            'maxPoolSize': 50,
+            'minPoolSize': 5,
+        }
+        if 'mongodb+srv' in uri or 'ssl=true' in uri.lower():
+            try:
+                import certifi
+                client_kwargs['tlsCAFile'] = certifi.where()
+            except ImportError:
+                pass
         try:
-            _mongo_client = MongoClient(
-                uri,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=5000,
-                socketTimeoutMS=10000,
-                maxPoolSize=50,
-                minPoolSize=5,
-            )
+            _mongo_client = MongoClient(uri, **client_kwargs)
             # Verify connectivity immediately
             _mongo_client.admin.command('ping')
             logger.info("MongoDB client connected successfully to %s", uri.split('@')[-1])
-        except ConnectionFailure as e:
+        except (ConnectionFailure, PyMongoError) as e:
             logger.warning("MongoDB ping failed on initialization: %s", e)
     return _mongo_client
 
