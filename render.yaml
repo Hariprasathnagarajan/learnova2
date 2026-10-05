@@ -1,4 +1,4 @@
-# Learnova API - Django REST Framework backend on Render.
+# Learnova API - Django REST Framework backend on Render (Free Tier Blueprint)
 #
 # Deploy with: Push repository to GitHub/GitLab, then create Blueprint in the
 # Render dashboard (New + -> Blueprint).
@@ -25,13 +25,12 @@ services:
     region: oregon
     rootDir: backend
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py migrate --noinput && python manage.py seed_data && python manage.py sync_mongodb
-    startCommand: gunicorn learnova_server.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    startCommand: python manage.py migrate --noinput && python manage.py seed_data && python manage.py sync_mongodb && gunicorn learnova_server.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     healthCheckPath: /api/v1/health/
     autoDeploy: false
 
     envVars:
-      # Injected automatically from the PostgreSQL database declared above.
+      # Injected automatically from the PostgreSQL database declared above
       - key: DATABASE_URL
         fromDatabase:
           name: learnova-db
@@ -81,10 +80,3 @@ services:
         value: "30"
       - key: MATERIAL_VIEWER_TTL_SECONDS
         value: "900"
-
-    # NOTE: Render Free tier does not support persistent disks.
-    # For paid plans (Starter+), persistent disks can be enabled by uncommenting:
-    # disk:
-    #   name: learnova-media
-    #   mountPath: /var/data
-    #   sizeGB: 1
