@@ -12,7 +12,7 @@ const getFallbackUrl = (): string => {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {
     return `${window.location.origin}/api/v1`;
   }
-  return 'http://172.19.15.49:8000/api/v1';
+  return 'https://learnova-api-xpo4.onrender.com/api/v1';
 };
 
 const rawApiUrl = 
