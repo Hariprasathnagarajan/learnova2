@@ -1,0 +1,92 @@
+# Learnova API - Django REST Framework backend on Render.
+#
+# Deploy with: set the repository to this repo, then create the blueprint in the
+# Render dashboard (or `render blueprint launch`). Required: a Render account and
+# permission to create a Postgres instance.
+#
+# After the first deploy, fill in the sync/block:
+#   python manage.py createsuperuser
+#   python manage.py seed_data
+#
+# Then point the mobile app at the deployed URL:
+#   EXPO_PUBLIC_API_URL=https://<service>.onrender.com/api/v1
+#
+# Every value in sync:false / secret env vars below is a placeholder. Render
+# never receives real secrets from this file.
+
+databases:
+  - name: learnova-db
+    databaseName: learnova
+    user: learnova
+    # Managed by Render; leave as false to have Render generate it.
+    plan: free
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: learnova-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    preDeployCommand: python manage.py migrate --noinput && python manage.py sync_mongodb
+    startCommand: gunicorn learnova_server.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/v1/health/
+    autoDeploy: false
+
+    envVars:
+      # Injected automatically for the database declared above.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: learnova-db
+          property: connectionString
+
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "learnova-api.onrender.com"
+      - key: DB_SSL_REQUIRE
+        value: "True"
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        value: "learnova_db"
+
+      # Web origins only. React Native sends no Origin header, so the mobile
+      # client is unaffected by this list. Never set CORS_ALLOW_ALL_ORIGINS.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+
+      # Razorpay - server-side only. RAZORPAY_KEY_SECRET must never be exposed to
+      # a client. Without these the API refuses to create payment orders instead
+      # of simulating one.
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+
+      - key: JWT_ACCESS_MINUTES
+        value: "60"
+      - key: JWT_REFRESH_DAYS
+        value: "30"
+      - key: MATERIAL_VIEWER_TTL_SECONDS
+        value: "900"
+
+      # Uploads are streamed only through authenticated short-lived signed URLs,
+      # so this disk only needs to hold the original files.
+      - key: MEDIA_ROOT
+        value: /var/data/media
+      - key: DISK_PATH
+        value: /var/data
+
+    disk:
+      name: learnova-media
+      mountPath: /var/data
+      sizeGB: 1

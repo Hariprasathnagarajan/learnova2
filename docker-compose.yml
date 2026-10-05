@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7-jammy
+    container_name: learnova_mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: learnova_db
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: learnova_unified_server
+    restart: always
+    depends_on:
+      - mongodb
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-prod-secret-key-change-in-production-2026}
+      DEBUG: "False"
+      MONGO_URI: mongodb://mongodb:27017/learnova_db
+      MONGO_DB_NAME: learnova_db
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      CORS_ALLOW_ALL_ORIGINS: "True"
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py seed_data &&
+             python manage.py sync_mongodb &&
+             gunicorn learnova_server.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+volumes:
+  mongo_data:

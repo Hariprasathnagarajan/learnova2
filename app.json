@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "Learnova",
+    "slug": "learnova",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "learnova",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#080B14",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.learnova.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#080B14",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.learnova.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#080B14",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": []
+        }
+      ],
+      "expo-build-properties"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "417c8952-90e5-4f08-a141-99422c1c6e81"
+      }
+    }
+  }
+}

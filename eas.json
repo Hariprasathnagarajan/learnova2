@@ -1,0 +1,35 @@
+{
+  "cli": {
+    "version": ">= 5.2.0",
+    "requireCommit": false
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:8000/api/v1",
+        "EXPO_PUBLIC_ENABLE_API_LOGGING": "true"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://172.19.15.49:8000/api/v1",
+        "EXPO_PUBLIC_ENABLE_API_LOGGING": "false"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://learnova-api.onrender.com/api/v1",
+        "EXPO_PUBLIC_ENABLE_API_LOGGING": "false"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

@@ -1,0 +1,66 @@
+export const ENDPOINTS = {
+  auth: {
+    login: '/auth/login/',
+    register: '/auth/register/',
+    refresh: '/auth/token/refresh/',
+    otpRequest: '/auth/otp/request/',
+    otpVerify: '/auth/otp/verify/',
+    forgotPassword: '/auth/forgot-password/',
+    resetPassword: '/auth/reset-password/',
+    profile: '/auth/profile/',
+  },
+  courses: {
+    list: '/courses/',
+    detail: (id: string) => `/courses/${id}/`,
+    /** Protected catalogue payload - sessions/materials/notes only when access is granted. */
+    protectedDetail: (id: string) => `/courses/${id}/detail/`,
+    access: (id: string) => `/courses/${id}/access/`,
+    sessions: (id: string) => `/courses/${id}/sessions/`,
+    materials: (id: string) => `/courses/${id}/materials/`,
+    notes: (id: string) => `/courses/${id}/notes/`,
+    paymentPlans: (id: string) => `/courses/${id}/payment-plans/`,
+    writeSession: (id: string) => `/courses/${id}/sessions/write/`,
+    writeMaterial: (id: string) => `/courses/${id}/materials/write/`,
+    writeNote: (id: string) => `/courses/${id}/notes/write/`,
+    writePaymentPlan: (id: string) => `/courses/${id}/payment-plans/write/`,
+  },
+  enrollments: {
+    list: '/enrollments/',
+    detail: (id: string) => `/enrollments/${id}/`,
+    access: (id: string) => `/enrollments/${id}/access/`,
+    myCourses: '/enrollments/my-courses/',
+    grant: '/enrollments/grant/',
+    manage: (id: string) => `/enrollments/${id}/manage/`,
+  },
+  payments: {
+    createOrder: '/payments/create-order/',
+    verify: '/payments/verify/',
+    history: '/payments/',
+    courseStudents: (courseId: string) => `/payments/course/${courseId}/students/`,
+    coursePayments: (courseId: string) => `/payments/course/${courseId}/payments/`,
+  },
+  sessions: {
+    join: (id: string) => `/sessions/${id}/join/`,
+    adminDetail: (id: string) => `/sessions/${id}/admin/`,
+  },
+  materials: {
+    requestAccess: (id: string) => `/materials/${id}/access/`,
+    stream: (id: string, token: string) => `/materials/${id}/stream/?token=${encodeURIComponent(token)}`,
+  },
+  notifications: {
+    list: '/notifications/',
+    markRead: (id: string) => `/notifications/${id}/read/`,
+    markAllRead: '/notifications/read-all/',
+  },
+  users: {
+    list: '/users/',
+    detail: (id: string) => `/users/${id}/`,
+    createStaff: '/users/create-staff/',
+  },
+  admin: {
+    dashboard: '/admin/dashboard/',
+    staffDashboard: '/admin/staff-dashboard/',
+    createNotification: '/admin/notifications/',
+    assignStaff: (courseId: string) => `/admin/courses/${courseId}/assign-staff/`,
+  },
+} as const;
