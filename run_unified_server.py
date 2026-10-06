@@ -19,8 +19,7 @@ def main():
     
     # 1. Verify web bundle exists
     if not (DIST_DIR / 'index.html').exists():
-        print("[!] Dist directory missing. Building web bundle with Expo...")
-        subprocess.run(["npx", "expo", "export", "-p", "web"], cwd=str(BASE_DIR), check=True)
+        print("[*] Web bundle dist/index.html not present; API endpoints and Django Admin are active.")
     else:
         print("[OK] Web bundle verified in:", DIST_DIR)
 
