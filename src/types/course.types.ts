@@ -10,6 +10,15 @@ export interface CourseInstructor {
   bio?: string;
 }
 
+export interface AssignedStaffMember {
+  id: string;
+  email: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -26,6 +35,10 @@ export interface Course {
   enrolledCount: number;
   durationWeeks: number;
   totalSessions: number;
+  assignedTo?: (string | number)[];
+  assigned_to?: (string | number)[];
+  assignedStaff?: AssignedStaffMember[];
+  assigned_staff?: AssignedStaffMember[];
   paymentPlans: PaymentPlan[];
   createdAt: string;
   updatedAt: string;

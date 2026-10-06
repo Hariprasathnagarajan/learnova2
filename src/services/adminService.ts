@@ -70,6 +70,20 @@ export const adminService = {
     return data;
   },
 
+  async updateCourse(id: string, course: Partial<Course>): Promise<Course> {
+    const { data } = await apiClient.patch<Course>(ENDPOINTS.courses.detail(id), course);
+    return data;
+  },
+
+  async getStaffUsers(search?: string): Promise<UserListItem[]> {
+    const params = new URLSearchParams({ role: 'staff' });
+    if (search && search.trim()) {
+      params.append('search', search.trim());
+    }
+    const { data } = await apiClient.get<UserListItem[]>(`${ENDPOINTS.users.list}?${params.toString()}`);
+    return data;
+  },
+
   async deleteCourse(id: string): Promise<void> {
     await apiClient.delete(ENDPOINTS.courses.detail(id));
   },

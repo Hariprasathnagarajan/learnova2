@@ -61,8 +61,16 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Course.objects.select_related().prefetch_related('payment_plans')
-        if is_admin(self.request.user):
+        user = self.request.user
+        if is_admin(user):
+            assigned_to = self.request.query_params.get('assigned_to') or self.request.query_params.get('assignedTo')
+            if assigned_to:
+                qs = qs.filter(assigned_staff__id=assigned_to)
             return qs.order_by('-created_at')
+        if is_staff(user):
+            if self.request.query_params.get('all') == 'true':
+                return qs.filter(is_published=True).order_by('-created_at')
+            return qs.filter(assigned_staff=user).order_by('-created_at')
         return qs.filter(is_published=True).order_by('-created_at')
 
     def get_serializer_class(self):

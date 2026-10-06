@@ -1,5 +1,7 @@
 from django.utils.text import slugify
 from rest_framework import serializers
+from accounts.models import User
+from core.permissions import is_admin
 from .models import Course, PaymentPlan, Session, Material, Note
 
 
@@ -264,6 +266,10 @@ class CourseListSerializer(serializers.ModelSerializer):
     durationWeeks = serializers.SerializerMethodField()
     totalSessions = serializers.IntegerField(source='total_sessions', read_only=True)
     shortDescription = serializers.SerializerMethodField()
+    assigned_staff = serializers.SerializerMethodField()
+    assignedStaff = serializers.SerializerMethodField()
+    assigned_to = serializers.SerializerMethodField()
+    assignedTo = serializers.SerializerMethodField()
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
     updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
 
@@ -274,6 +280,7 @@ class CourseListSerializer(serializers.ModelSerializer):
             'instructor_name', 'instructor_avatar', 'instructor', 'thumbnail_url', 'thumbnail',
             'price_inr', 'rating', 'total_reviews', 'ratingCount', 'total_enrolled', 'enrolledCount',
             'duration_hours', 'durationWeeks', 'total_sessions', 'totalSessions', 'tags',
+            'assigned_staff', 'assignedStaff', 'assigned_to', 'assignedTo',
             'payment_plans', 'paymentPlans', 'created_at', 'createdAt', 'updated_at', 'updatedAt'
         )
 
@@ -287,6 +294,28 @@ class CourseListSerializer(serializers.ModelSerializer):
             'name': obj.instructor_name,
             'avatar': obj.instructor_avatar or '',
         }
+
+    def get_assigned_staff(self, obj):
+        return [
+            {
+                'id': str(u.id),
+                'email': u.email,
+                'name': u.name or f"{u.first_name} {u.last_name}".strip() or u.email,
+                'firstName': u.first_name or (u.name.split(' ', 1)[0] if u.name else ''),
+                'lastName': u.last_name or (u.name.split(' ', 1)[1] if u.name and ' ' in u.name else ''),
+                'role': u.role,
+            }
+            for u in obj.assigned_staff.all()
+        ]
+
+    def get_assignedStaff(self, obj):
+        return self.get_assigned_staff(obj)
+
+    def get_assigned_to(self, obj):
+        return [u.id for u in obj.assigned_staff.all()]
+
+    def get_assignedTo(self, obj):
+        return [u.id for u in obj.assigned_staff.all()]
 
     def get_durationWeeks(self, obj):
         return max(1, round((obj.duration_hours or 40) / 10))
@@ -318,6 +347,9 @@ class CourseWriteSerializer(CamelCaseWriteMixin, serializers.ModelSerializer):
         'durationHours': 'duration_hours',
         'totalSessions': 'total_sessions',
         'isPublished': 'is_published',
+        'assignedTo': 'assigned_to',
+        'assignedStaff': 'assigned_to',
+        'assigned_staff': 'assigned_to',
     }
 
     slug = serializers.SlugField(required=False, allow_blank=True)
@@ -326,6 +358,11 @@ class CourseWriteSerializer(CamelCaseWriteMixin, serializers.ModelSerializer):
     price_inr = serializers.IntegerField(required=False, min_value=0)
     duration_hours = serializers.IntegerField(required=False, min_value=0)
     total_sessions = serializers.IntegerField(required=False, min_value=0)
+    assigned_to = serializers.ListField(
+        child=serializers.JSONField(),
+        required=False,
+        allow_empty=True,
+    )
 
     class Meta:
         model = Course
@@ -333,7 +370,7 @@ class CourseWriteSerializer(CamelCaseWriteMixin, serializers.ModelSerializer):
             'title', 'slug', 'description', 'category', 'level',
             'instructor_name', 'instructor_avatar', 'thumbnail_url',
             'price_inr', 'duration_hours', 'total_sessions',
-            'tags', 'is_published',
+            'tags', 'is_published', 'assigned_to',
         )
         extra_kwargs = {
             f: {'required': False} for f in (
@@ -342,6 +379,43 @@ class CourseWriteSerializer(CamelCaseWriteMixin, serializers.ModelSerializer):
                 'tags', 'is_published',
             )
         }
+
+    def validate_assigned_to(self, value):
+        # Enforce that only admins can assign staff members
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated and not is_admin(request.user):
+            raise serializers.ValidationError("Only administrators can assign staff members to courses.")
+
+        if not value:
+            return []
+
+        clean_ids = []
+        for item in value:
+            if isinstance(item, dict) and 'id' in item:
+                val = item['id']
+            else:
+                val = item
+            try:
+                clean_ids.append(int(val))
+            except (ValueError, TypeError):
+                raise serializers.ValidationError(f"Invalid user ID: {item}")
+
+        unique_ids = list(dict.fromkeys(clean_ids))
+        users = list(User.objects.filter(pk__in=unique_ids))
+        found_id_set = {u.id for u in users}
+        missing_ids = [uid for uid in unique_ids if uid not in found_id_set]
+        if missing_ids:
+            raise serializers.ValidationError(f"Users with IDs {missing_ids} do not exist.")
+
+        # Backend authority check: all assigned users must have role 'staff'
+        non_staff = [u for u in users if u.role != 'staff']
+        if non_staff:
+            non_staff_desc = [f"{u.email} ({u.role})" for u in non_staff]
+            raise serializers.ValidationError(
+                f"Only users with the STAFF role can be assigned to courses. Invalid: {', '.join(non_staff_desc)}"
+            )
+
+        return users
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -369,10 +443,27 @@ class CourseWriteSerializer(CamelCaseWriteMixin, serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        assigned_to = validated_data.pop('assigned_to', None)
         attrs = self._with_slug(validated_data)
         if not attrs.get('slug'):
             raise serializers.ValidationError({'slug': 'Could not derive a slug from the title.'})
-        return super().create(attrs)
+        course = super().create(attrs)
+        if assigned_to is not None:
+            course.assigned_staff.set(assigned_to)
+            if assigned_to and (not course.instructor_name or course.instructor_name == 'Learnova Faculty'):
+                first_staff = assigned_to[0]
+                course.instructor_name = first_staff.name or f"{first_staff.first_name} {first_staff.last_name}".strip() or first_staff.email
+                course.save(update_fields=['instructor_name'])
+        return course
 
     def update(self, instance, validated_data):
-        return super().update(instance, validated_data)
+        assigned_to = validated_data.pop('assigned_to', None)
+        attrs = self._with_slug(validated_data)
+        course = super().update(instance, attrs)
+        if assigned_to is not None:
+            course.assigned_staff.set(assigned_to)
+            if assigned_to and (not course.instructor_name or course.instructor_name == 'Learnova Faculty'):
+                first_staff = assigned_to[0]
+                course.instructor_name = first_staff.name or f"{first_staff.first_name} {first_staff.last_name}".strip() or first_staff.email
+                course.save(update_fields=['instructor_name'])
+        return course

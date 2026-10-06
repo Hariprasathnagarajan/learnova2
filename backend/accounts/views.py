@@ -247,7 +247,14 @@ class UserViewSet(viewsets.ModelViewSet):
             qs = qs.filter(role=role)
         search = self.request.query_params.get('search')
         if search:
-            qs = qs.filter(email__icontains=search)
+            from django.db.models import Q
+            s = search.strip()
+            qs = qs.filter(
+                Q(email__icontains=s) |
+                Q(name__icontains=s) |
+                Q(first_name__icontains=s) |
+                Q(last_name__icontains=s)
+            )
         return qs
 
     def perform_update(self, serializer):

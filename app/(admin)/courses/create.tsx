@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../../src/queries/queryKeys';
 import { colors } from '../../../src/theme/colors';
 import { formatINR } from '../../../src/utils/currencyUtils';
+import { StaffPicker } from '../../../src/components/ui/StaffPicker';
 
 const STEPS = [
   'Basics',
@@ -31,6 +32,7 @@ export default function CreateCourseWizard() {
   const [shortDesc, setShortDesc] = useState('');
   const [description, setDescription] = useState('');
   const [thumbnail, setThumbnail] = useState('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600');
+  const [assignedStaffIds, setAssignedStaffIds] = useState<number[]>([]);
   const [instructorName, setInstructorName] = useState('Priya Nair');
   const [durationWeeks, setDurationWeeks] = useState('12');
   const [totalSessions, setTotalSessions] = useState('36');
@@ -72,7 +74,9 @@ export default function CreateCourseWizard() {
         shortDescription: shortDesc || title,
         description: description || shortDesc || title,
         thumbnail,
-        instructor: { id: 'user-staff-1', name: instructorName, bio: 'Senior Instructor' },
+        instructor: { id: assignedStaffIds[0] ? String(assignedStaffIds[0]) : 'user-staff-1', name: instructorName, bio: 'Faculty Member' },
+        assigned_to: assignedStaffIds,
+        assignedTo: assignedStaffIds,
         durationWeeks: parseInt(durationWeeks, 10) || 12,
         totalSessions: parseInt(totalSessions, 10) || 36,
         status,
@@ -265,22 +269,31 @@ export default function CreateCourseWizard() {
           </View>
         )}
 
-        {/* Step 4: Instructor */}
+        {/* Step 4: Instructor / Staff Assignment */}
         {currentStep === 3 && (
           <View style={{ gap: 16 }}>
-            <Text style={{ color: colors.text.secondary, fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>
-              Assigned Faculty Member
-            </Text>
-            <TextInput
-              value={instructorName}
-              onChangeText={setInstructorName}
-              placeholder="e.g. Priya Nair"
-              placeholderTextColor={colors.text.muted}
-              style={{ backgroundColor: colors.surface.secondary, borderRadius: 12, padding: 16, color: colors.text.primary, borderWidth: 1, borderColor: colors.border }}
+            <StaffPicker
+              selectedIds={assignedStaffIds}
+              onChange={setAssignedStaffIds}
+              label="Assigned To"
+              description="Select the Staff members responsible for managing this course."
+              placeholder="Search and select staff..."
             />
-            <Text style={{ color: colors.text.muted, fontSize: 12 }}>
-              Assigned instructor will gain authorization to schedule live meetings and upload protected study materials.
-            </Text>
+            <View style={{ marginTop: 8 }}>
+              <Text style={{ color: colors.text.secondary, fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium', marginBottom: 8 }}>
+                Primary Display Instructor Name (Optional)
+              </Text>
+              <TextInput
+                value={instructorName}
+                onChangeText={setInstructorName}
+                placeholder="e.g. Priya Nair"
+                placeholderTextColor={colors.text.muted}
+                style={{ backgroundColor: colors.surface.secondary, borderRadius: 12, padding: 16, color: colors.text.primary, borderWidth: 1, borderColor: colors.border }}
+              />
+              <Text style={{ color: colors.text.muted, fontSize: 12, marginTop: 6 }}>
+                Assigned staff members will gain authorization to schedule live meetings and upload protected study materials.
+              </Text>
+            </View>
           </View>
         )}
 

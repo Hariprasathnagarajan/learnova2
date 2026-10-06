@@ -2,18 +2,64 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCourse } from '../../../../src/queries/useCourses';
+import { queryKeys } from '../../../../src/queries/queryKeys';
+import { adminService } from '../../../../src/services/adminService';
+import { StaffPicker } from '../../../../src/components/ui/StaffPicker';
 import { colors } from '../../../../src/theme/colors';
 
 function EditCourseForm({ course, onBack }: { course: any; onBack: () => void }) {
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description);
-  const [status, setStatus] = useState<'published' | 'draft' | 'archived'>(course.status);
+  const [status, setStatus] = useState<'published' | 'draft' | 'archived'>(course.status || 'published');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    Alert.alert('Saved', 'Course configuration updated successfully.', [
-      { text: 'OK', onPress: onBack },
-    ]);
+  // Normalize initial assigned staff
+  const initialIds: number[] = (course.assigned_to || course.assignedTo || [])
+    .map((id: any) => (typeof id === 'string' ? parseInt(id, 10) : Number(id)))
+    .filter((n: number) => Number.isFinite(n));
+
+  const initialStaff = (course.assignedStaff || course.assigned_staff || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    email: s.email,
+  }));
+
+  const [assignedStaffIds, setAssignedStaffIds] = useState<number[]>(initialIds);
+
+  const handleSave = async () => {
+    if (!title?.trim()) {
+      Alert.alert('Missing Field', 'Please enter a course title.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await adminService.updateCourse(course.id, {
+        title: title.trim(),
+        description: description?.trim(),
+        status,
+        assigned_to: assignedStaffIds,
+        assignedTo: assignedStaffIds,
+      });
+
+      await queryClient.invalidateQueries({ queryKey: queryKeys.courses.detail(course.id) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.courses.list() });
+
+      Alert.alert('Saved', 'Course configuration updated successfully.', [
+        { text: 'OK', onPress: onBack },
+      ]);
+    } catch (err: any) {
+      const errMsg =
+        err?.response?.data?.assigned_to?.[0] ||
+        err?.response?.data?.detail ||
+        err.message ||
+        'Failed to save course changes.';
+      Alert.alert('Save Failed', errMsg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -40,6 +86,18 @@ function EditCourseForm({ course, onBack }: { course: any; onBack: () => void })
           numberOfLines={6}
           textAlignVertical="top"
           style={{ backgroundColor: colors.surface.secondary, borderRadius: 12, padding: 16, color: colors.text.primary, borderWidth: 1, borderColor: colors.border, minHeight: 140 }}
+        />
+      </View>
+
+      {/* Assigned Staff Multi-Select Picker */}
+      <View style={{ marginBottom: 20 }}>
+        <StaffPicker
+          selectedIds={assignedStaffIds}
+          onChange={setAssignedStaffIds}
+          label="Assigned To"
+          description="Select the Staff members responsible for managing this course."
+          placeholder="Search and select staff..."
+          initialStaff={initialStaff}
         />
       </View>
 
@@ -72,11 +130,22 @@ function EditCourseForm({ course, onBack }: { course: any; onBack: () => void })
 
       <TouchableOpacity
         onPress={handleSave}
-        style={{ backgroundColor: colors.accent, borderRadius: 14, padding: 18, alignItems: 'center' }}
+        disabled={saving}
+        style={{
+          backgroundColor: colors.accent,
+          borderRadius: 14,
+          padding: 18,
+          alignItems: 'center',
+          opacity: saving ? 0.7 : 1,
+        }}
       >
-        <Text style={{ color: '#080B14', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>
-          Save Modifications
-        </Text>
+        {saving ? (
+          <ActivityIndicator color="#080B14" />
+        ) : (
+          <Text style={{ color: '#080B14', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>
+            Save Modifications
+          </Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );

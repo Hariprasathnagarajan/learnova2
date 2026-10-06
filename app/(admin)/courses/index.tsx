@@ -71,8 +71,8 @@ export default function AdminCoursesScreen() {
                   <Text style={{ fontSize: 15, color: colors.text.primary, fontFamily: 'PlusJakartaSans_700Bold', marginTop: 4 }} numberOfLines={1}>
                     {course.title}
                   </Text>
-                  <Text style={{ fontSize: 12, color: colors.text.muted, marginTop: 2 }}>
-                    Instructor: {course.instructor.name}
+                  <Text style={{ fontSize: 12, color: colors.text.muted, marginTop: 2 }} numberOfLines={1}>
+                    Staff: {(course.assignedStaff || course.assigned_staff)?.length ? (course.assignedStaff || course.assigned_staff)!.map((s) => s.name).join(', ') : (course.instructor?.name || 'Unassigned')}
                   </Text>
                   <Text style={{ fontSize: 14, color: colors.accent, fontFamily: 'PlusJakartaSans_700Bold', marginTop: 6 }}>
                     {formatINR(Math.min(...course.paymentPlans.map((p) => p.priceInr)))}
